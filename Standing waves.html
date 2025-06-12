@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Standing Wave Simulation - Continuous Animation</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <style>
+        html {
+            box-sizing: border-box;
+        }
+        *, *:before, *:after {
+            box-sizing: inherit;
+        }
+        body {
+            font-family: 'Inter', Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding-top: 20px;
+            padding-bottom: 20px;
+            background-color: #f0f2f5;
+            color: #333;
+            min-height: 100vh;
+            overflow-y: auto;
+        }
+        h1 {
+            color: #2c3e50;
+            margin-top: 0;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        h2#frequencyDisplay {
+            color: #34495e;
+            font-size: 1.1em;
+            margin-top: 0;
+            margin-bottom: 10px; 
+            min-height: 1.5em;
+            text-align: center;
+            font-weight: 500;
+        }
+        h2#frequencyDisplay span.freq-value {
+            font-weight: 600;
+            color: #007bff;
+        }
+
+        .top-controls-container { 
+            margin-top: 0; 
+            margin-bottom: 15px; 
+            padding: 10px 20px;
+            border: 1px solid #dfe4ea;
+            border-radius: 8px;
+            background-color: #ffffff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            width: 90%;
+            max-width: 400px; 
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+         .top-controls-container .slider-group {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+         }
+         .top-controls-container .slider-group label {
+            font-weight: 500;
+            color: #555;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+         }
+         .top-controls-container .slider-group input[type="range"] {
+            width: 100%;
+         }
+
+        #main-simulation-layout {
+            display: flex;
+            flex-direction: row; 
+            justify-content: center;
+            align-items: flex-start; 
+            gap: 20px;
+            width: 90%;
+            max-width: 1170px; 
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        #simulation-area-container {
+            flex: 0 0 800px; 
+        }
+
+        canvas {
+            border: 1px solid #bdc3c7;
+            background-color: #ffffff;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            display: block; 
+            width: 100%; 
+        }
+
+        #controls-container {
+            padding: 20px;
+            border: 1px solid #dfe4ea;
+            border-radius: 8px;
+            background-color: #ffffff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column; 
+            gap: 15px; 
+            flex: 1; 
+            max-width: 320px; 
+            min-width: 280px; 
+            box-sizing: border-box; 
+        }
+        .control-group { 
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .control-group label {
+            font-weight: 500;
+            color: #555;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .control-group label span, .top-controls-container .slider-group label span {
+            font-weight: 600;
+            color: #007bff;
+            margin-left: 8px;
+        }
+        .control-group label.checkbox-label {
+            justify-content: flex-start;
+        }
+        .control-group input[type="checkbox"] {
+            width: auto;
+            height: auto;
+            margin-left: 10px;
+        }
+
+        #playback-controls-container {
+            margin-top: 20px; 
+            padding: 10px 15px;
+            border: 1px solid #dfe4ea;
+            border-radius: 8px;
+            background-color: #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            width: 90%;
+            max-width: 800px; 
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+        .button-controls-row {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        .button-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .button-label {
+            font-weight: 500;
+            color: #555;
+            font-size: 0.95em;
+        }
+        .play-pause-icon-button {
+            color: white;
+            border: none;
+            padding: 8px; 
+            border-radius: 50%; 
+            width: 40px; 
+            height: 40px; 
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            display: flex; 
+            align-items: center;
+            justify-content: center;
+        }
+        .play-pause-icon-button svg {
+            width: 18px; 
+            height: 18px;
+            fill: white;
+        }
+        .play-pause-icon-button:hover {
+             filter: brightness(90%);
+        }
+        #timeScrubSlider {
+            width: 100%;
+            max-width: 400px; 
+        }
+        #timeScrubSliderLabel {
+             font-size: 0.9em;
+             color: #555;
+             text-align: center;
+             width: 100%;
+             margin-bottom: 5px;
+        }
+        
+        select, input[type="range"] {
+            padding: 0;
+            border-radius: 6px;
+            border: 1px solid #ced4da;
+            background-color: #f8f9fa;
+            font-size: 1em;
+            width: 100%;
+            box-sizing: border-box;
+            height: 22px;
+            margin-top: 4px;
+        }
+        select {
+             padding: 10px 12px;
+             height: auto;
+        }
+        input[type="range"]:focus, select:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+            outline: none;
+        }
+
+        #phaseRelationshipDisplay {
+            margin-top: 15px;
+            margin-bottom: 20px; 
+            padding: 15px;
+            border: 1px solid #dfe4ea;
+            border-radius: 8px;
+            background-color: #ffffff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            width: 90%;
+            max-width: 800px; 
+            box-sizing: border-box;
+            font-size: 1em;
+            color: #34495e;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+        #phaseRelationshipDisplay span.phase-label {}
+        #phaseRelationshipDisplay span.phase-value {
+            font-weight: 600;
+            color: #d63384;
+        }
+        #phaseRadians {
+            min-width: 6em;
+            text-align: right;
+            display: inline-block;
+        }
+        #phaseDegrees {
+            min-width: 3.5em;
+            text-align: left;
+            display: inline-block;
+        }
+
+        @media (max-width: 1150px) { 
+            #main-simulation-layout {
+                flex-direction: column;
+                align-items: center; 
+                gap: 0; 
+                max-width: 800px; 
+            }
+            #simulation-area-container {
+                flex-basis: auto; 
+                width: 100%; 
+                max-width: 800px; 
+                margin-bottom: 20px; 
+            }
+            #controls-container {
+                display: grid; 
+                grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+                gap: 20px;
+                width: 100%; 
+                max-width: 800px; 
+                min-width: unset;
+                flex: none; 
+                margin-top: 0; 
+            }
+        }
+
+        @media (max-width: 700px) {
+            h2#frequencyDisplay {
+                font-size: 1em;
+                display: flex;
+                flex-direction: column;
+                gap: 5px;
+            }
+             #phaseRelationshipDisplay {
+                font-size: 0.95em;
+            }
+            .top-controls-container, #playback-controls-container {
+                max-width: 95%; 
+            }
+            .button-controls-row {
+                flex-direction: column; 
+                gap: 10px;
+            }
+            .button-item {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+        @media (max-width: 640px) {
+            body {
+                padding-top: 15px;
+                padding-left: 10px;
+                padding-right: 10px;
+            }
+            h1 { font-size: 1.6rem; }
+            #simulation-area-container { 
+                width: 100%;
+            }
+            #controls-container { 
+                gap: 15px;
+            }
+            select, input[type="range"] {
+                height: 28px;
+            }
+            select {
+                height: auto;
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Standing Wave Simulation</h1>
+    <h2 id="frequencyDisplay">Fundamental ($f_1$): -- Hz | Current Mode ($n=1, f_1$): -- Hz</h2>
+
+    <div class="top-controls-container"> 
+        <div class="slider-group">
+            <label for="animationSpeedSlider">Animation Speed: <span id="animationSpeedValueDisplay">1.0</span>x</label>
+            <input type="range" id="animationSpeedSlider" min="0.1" max="3.0" value="1.0" step="0.1">
+        </div>
+    </div>
+    
+    <div id="main-simulation-layout">
+        <div id="simulation-area-container">
+            <canvas id="waveCanvas" width="800" height="400"></canvas> 
+        </div>
+        <div id="controls-container">
+            <div class="control-group">
+                <label for="harmonicSelect">Harmonic Mode (n):</label>
+                <select id="harmonicSelect">
+                    <option value="1">1 (Fundamental)</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="amplitudeSlider">Amplitude (A) / Volume: <span id="amplitudeValueDisplay">50</span></label>
+                <input type="range" id="amplitudeSlider" min="10" max="100" value="50" step="1">
+            </div>
+            <div class="control-group">
+                <label for="lengthSlider">String Length (L): <span id="lengthValueDisplay">1.0</span> m</label>
+                <input type="range" id="lengthSlider" min="0.1" max="5.0" value="1.0" step="0.1">
+            </div>
+            <div class="control-group">
+                <label for="tensionSlider">Tension (T): <span id="tensionValueDisplay">10</span> N</label>
+                <input type="range" id="tensionSlider" min="1" max="100" value="10" step="1">
+            </div>
+            <div class="control-group">
+                <label for="muSlider">Mass per Length (μ): <span id="muValueDisplay">0.010</span> kg/m</label>
+                <input type="range" id="muSlider" min="0.001" max="0.1" value="0.01" step="0.001">
+            </div>
+            <div class="control-group">
+                <label for="showProgressiveWaves" class="checkbox-label">Show Progressive Waves
+                    <input type="checkbox" id="showProgressiveWaves">
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <div id="playback-controls-container">
+        <div class="button-controls-row">
+            <div class="button-item">
+                <span class="button-label">Animation:</span>
+                <button id="playPauseAnimationButton" class="play-pause-icon-button">
+                    </button>
+            </div>
+            <div class="button-item">
+                <span class="button-label">Tone:</span>
+                <button id="playPauseToneButton" class="play-pause-icon-button">
+                    </button>
+            </div>
+        </div>
+        <label id="timeScrubSliderLabel" for="timeScrubSlider">Manual Time Control (0 to 4 Periods):</label>
+        <input type="range" id="timeScrubSlider" min="0" value="0" step="0.01">
+    </div>
+    
+    <div id="phaseRelationshipDisplay">
+        <span class="phase-label">Progressive Wave Phase Difference:</span>
+        <span id="phaseRadians" class="phase-value">--</span>
+        (<span id="phaseDegrees" class="phase-value">--</span>°)
+    </div>
+
+    <script>
+        // DOM Element References
+        const canvas = document.getElementById('waveCanvas');
+        const ctx = canvas.getContext('2d');
+        const harmonicSelect = document.getElementById('harmonicSelect');
+
+        const amplitudeSlider = document.getElementById('amplitudeSlider');
+        const amplitudeValueDisplay = document.getElementById('amplitudeValueDisplay');
+        const lengthSlider = document.getElementById('lengthSlider');
+        const lengthValueDisplay = document.getElementById('lengthValueDisplay');
+        const tensionSlider = document.getElementById('tensionSlider');
+        const tensionValueDisplay = document.getElementById('tensionValueDisplay');
+        const muSlider = document.getElementById('muSlider');
+        const muValueDisplay = document.getElementById('muValueDisplay');
+        const showProgressiveWavesCheckbox = document.getElementById('showProgressiveWaves');
+        
+        const animationSpeedSlider = document.getElementById('animationSpeedSlider');
+        const animationSpeedValueDisplay = document.getElementById('animationSpeedValueDisplay');
+
+        const frequencyDisplayElement = document.getElementById('frequencyDisplay');
+        const phaseRelationshipDisplayDiv = document.getElementById('phaseRelationshipDisplay');
+        const phaseRadiansSpan = document.getElementById('phaseRadians');
+        const phaseDegreesSpan = document.getElementById('phaseDegrees');
+
+        // Playback Controls
+        const playPauseAnimationButton = document.getElementById('playPauseAnimationButton'); 
+        const playPauseToneButton = document.getElementById('playPauseToneButton'); 
+        const timeScrubSlider = document.getElementById('timeScrubSlider');
+        const timeScrubSliderLabel = document.getElementById('timeScrubSliderLabel');
+
+        // SVG Icons for Play/Pause button
+        const playIconSVG = `<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg>`;
+        const pauseIconSVG = `<svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"></path></svg>`;
+
+        // Tone.js setup
+        let oscillator = null;
+        let gainNode = null;
+        let isAudioContextStarted = false; 
+        const MAX_GAIN = 0.3; 
+
+        function initAudio() {
+            if (typeof Tone !== 'undefined') { 
+                gainNode = new Tone.Gain(0.0).toDestination(); 
+                oscillator = new Tone.Oscillator(440, "sine").connect(gainNode);
+                oscillator.start(); 
+            } else {
+                console.warn("Tone.js not loaded. Sound features will be unavailable.");
+            }
+        }
+        initAudio(); 
+
+
+        let animationId = null;
+        let time = 0;
+        let isAnimationPaused = true; 
+        let isTonePaused = true;      
+
+        // --- Simulation Parameters ---
+        const L_MAX_SLIDER_VALUE = 5.0; // Maximum physical length from the slider
+        const numSegments = 200; 
+        const BASE_ANIMATION_TIME_SCALE = 0.002;
+        let animationSpeedMultiplier = parseFloat(animationSpeedSlider.value);
+        const BASE_LINE_WIDTH = 2; 
+        let currentLineWidth = BASE_LINE_WIDTH; 
+
+        // Physics parameters
+        let stringPhysicalLength, tension, massPerUnitLength, amplitude, currentHarmonic;
+        let fundamentalFrequency = 0;
+        let currentModeFrequency = 0;
+        let k, omega;
+        let maxScrubTime = 4.0;
+
+        // Function to adjust canvas height based on controls panel (on wide screens)
+        function adjustCanvasHeight() {
+            const controlsPanel = document.getElementById('controls-container');
+            
+            if (window.innerWidth > 1150) { 
+                const controlsHeight = controlsPanel.offsetHeight;
+                if (controlsHeight > 0) {
+                    canvas.height = controlsHeight; 
+                    canvas.style.height = controlsHeight + 'px'; 
+                }
+            } else { 
+                canvas.width = 800; 
+                canvas.height = 400; 
+                canvas.style.height = ''; 
+            }
+            // canvasDisplayWidth is not used directly for scaling x anymore, canvas.width is used.
+            drawString(); 
+        }
+
+
+        // Function to update all parameter values from inputs
+        function getAllInputValues() {
+            stringPhysicalLength = parseFloat(lengthSlider.value);
+            tension = parseFloat(tensionSlider.value);
+            massPerUnitLength = parseFloat(muSlider.value);
+            amplitude = parseInt(amplitudeSlider.value); 
+            currentHarmonic = parseInt(harmonicSelect.value);
+            animationSpeedMultiplier = parseFloat(animationSpeedSlider.value);
+
+            amplitudeValueDisplay.textContent = amplitude;
+            lengthValueDisplay.textContent = stringPhysicalLength.toFixed(1);
+            tensionValueDisplay.textContent = tension;
+            muValueDisplay.textContent = massPerUnitLength.toFixed(3);
+            animationSpeedValueDisplay.textContent = animationSpeedMultiplier.toFixed(1);
+
+            const mu_min = 0.001;
+            const mu_max = 0.1;
+            const lineWidth_min = 0.5 * BASE_LINE_WIDTH; 
+            const lineWidth_max = 2.0 * BASE_LINE_WIDTH; 
+            
+            if (massPerUnitLength <= mu_min) {
+                currentLineWidth = lineWidth_min;
+            } else if (massPerUnitLength >= mu_max) {
+                currentLineWidth = lineWidth_max;
+            } else {
+                const normalized_mu = (massPerUnitLength - mu_min) / (mu_max - mu_min);
+                currentLineWidth = lineWidth_min + normalized_mu * (lineWidth_max - lineWidth_min);
+            }
+        }
+
+        // Function to update simulation parameters and calculate frequencies
+        function updateParametersAndFrequency() {
+            getAllInputValues();
+
+            if (stringPhysicalLength <= 0 || tension <= 0 || massPerUnitLength <= 0) {
+                frequencyDisplayElement.innerHTML = `Invalid inputs (must be > 0)`;
+                k = NaN;
+                omega = NaN;
+                timeScrubSlider.max = 4;
+                timeScrubSlider.disabled = true;
+                if (oscillator) oscillator.frequency.value = 0; 
+                if (gainNode && !isTonePaused) gainNode.gain.rampTo(0.0, 0.01); 
+                return false;
+            }
+            timeScrubSlider.disabled = false;
+
+            const waveSpeed = Math.sqrt(tension / massPerUnitLength);
+            fundamentalFrequency = waveSpeed / (2 * stringPhysicalLength);
+            currentModeFrequency = currentHarmonic * fundamentalFrequency;
+
+            frequencyDisplayElement.innerHTML =
+                `Fundamental (<span class="freq-value">f₁</span>): <span class="freq-value">${fundamentalFrequency.toFixed(2)}</span> Hz ` +
+                `| Current Mode (<span class="freq-value">n=${currentHarmonic}, f<sub>${currentHarmonic}</sub></span>): <span class="freq-value">${currentModeFrequency.toFixed(2)}</span> Hz`;
+
+            omega = 2 * Math.PI * currentModeFrequency;
+            k = (currentHarmonic * Math.PI) / stringPhysicalLength;
+
+            if (oscillator) { 
+                if (currentModeFrequency > 0 && !isNaN(currentModeFrequency)) {
+                    oscillator.frequency.value = currentModeFrequency;
+                    if (!isTonePaused) { 
+                        const targetGain = (amplitude - 10) / (100 - 10) * MAX_GAIN; 
+                        if (gainNode) gainNode.gain.rampTo(Math.max(0, targetGain), 0.05); 
+                    }
+                } else {
+                    oscillator.frequency.value = 0; 
+                    if (gainNode) gainNode.gain.rampTo(0.0, 0.01); 
+                }
+            }
+
+
+            if (currentModeFrequency > 0) {
+                const period = 1 / currentModeFrequency;
+                maxScrubTime = 4 * period;
+                timeScrubSlider.max = maxScrubTime.toFixed(3);
+                timeScrubSlider.step = (maxScrubTime / 200).toFixed(5);
+            } else {
+                maxScrubTime = 4.0;
+                timeScrubSlider.max = maxScrubTime.toFixed(3);
+                timeScrubSlider.step = (maxScrubTime / 200).toFixed(5);
+            }
+            return true;
+        }
+
+        // Helper function to format radians in steps of pi/4
+        function formatRadiansInPiSteps(step) {
+            switch (step) {
+                case 0: return "0 rad";
+                case 1: return "&pi;/4 rad";
+                case 2: return "&pi;/2 rad";
+                case 3: return "3&pi;/4 rad";
+                case 4: return "&pi; rad";
+                case 5: return "5&pi;/4 rad";
+                case 6: return "3&pi;/2 rad";
+                case 7: return "7&pi;/4 rad";
+                default: return "N/A";
+            }
+        }
+
+        // Function to draw the string(s) on the canvas
+        function drawString() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height); 
+
+            if (showProgressiveWavesCheckbox.checked) {
+                if (isNaN(omega) || isNaN(k) || currentHarmonic <= 0) {
+                    phaseRadiansSpan.innerHTML = "N/A";
+                    phaseDegreesSpan.textContent = "N/A";
+                } else {
+                    let continuousPhaseRad = (2 * omega * time);
+                    continuousPhaseRad = ((continuousPhaseRad % (2 * Math.PI)) + (2 * Math.PI)) % (2 * Math.PI);
+                    const piOver4 = Math.PI / 4;
+                    let stepNumberRad = Math.round(continuousPhaseRad / piOver4) % 8;
+                    phaseRadiansSpan.innerHTML = formatRadiansInPiSteps(stepNumberRad);
+                    phaseDegreesSpan.textContent = (stepNumberRad * 45).toFixed(0);
+                }
+            }
+
+            if (isNaN(omega) || isNaN(k) || currentHarmonic <= 0) {
+                ctx.beginPath();
+                ctx.moveTo(0, canvas.height / 2);
+                ctx.lineTo(canvas.width, canvas.height / 2); 
+                ctx.strokeStyle = '#bdc3c7';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+                return;
+            }
+
+            // --- 1. Draw Antinode Lines and Dots ---
+            ctx.strokeStyle = '#cccccc'; 
+            ctx.lineWidth = 1;
+            ctx.setLineDash([5, 3]); 
+            
+            for (let j = 0; j < currentHarmonic; j++) {
+                const antinodeX_physics = ((2 * j + 1) * stringPhysicalLength) / (2 * currentHarmonic);
+                const antinodeX_canvas = (antinodeX_physics / L_MAX_SLIDER_VALUE) * canvas.width; 
+                
+                ctx.beginPath();
+                ctx.moveTo(antinodeX_canvas, 0);
+                ctx.lineTo(antinodeX_canvas, canvas.height);
+                ctx.stroke();
+
+                const yOffset_antinode = amplitude * Math.sin(k * antinodeX_physics) * Math.cos(omega * time);
+                const y_canvas_antinode = canvas.height / 2 + yOffset_antinode;
+
+                ctx.fillStyle = 'green'; 
+                ctx.beginPath();
+                ctx.arc(antinodeX_canvas, y_canvas_antinode, 5, 0, 2 * Math.PI); 
+                ctx.fill();
+            }
+            ctx.setLineDash([]); 
+
+            // --- 2. Draw the main standing wave ---
+            ctx.beginPath();
+            const start_x_physics = 0;
+            const start_x_canvas = (start_x_physics / L_MAX_SLIDER_VALUE) * canvas.width;
+            const standingWave_y_start_physics = amplitude * Math.sin(k * start_x_physics) * Math.cos(omega * time);
+            ctx.moveTo(start_x_canvas, canvas.height / 2 + standingWave_y_start_physics);
+
+            for (let i = 0; i <= numSegments; i++) {
+                const x_physics = (i / numSegments) * stringPhysicalLength; 
+                const x_canvas = (x_physics / L_MAX_SLIDER_VALUE) * canvas.width; 
+                const yOffset_standing = amplitude * Math.sin(k * x_physics) * Math.cos(omega * time);
+                const y_canvas_standing = canvas.height / 2 + yOffset_standing;
+                ctx.lineTo(x_canvas, y_canvas_standing);
+            }
+            ctx.strokeStyle = '#007bff';
+            ctx.lineWidth = currentLineWidth; 
+            ctx.stroke();
+
+            // --- 3. Draw Progressive Waves ---
+            if (showProgressiveWavesCheckbox.checked) {
+                const progressiveAmplitude = amplitude / 2;
+                ctx.beginPath(); // Wave 1
+                const y1_start_physics = progressiveAmplitude * Math.sin(k * 0 - omega * time);
+                ctx.moveTo((0 / L_MAX_SLIDER_VALUE) * canvas.width, canvas.height / 2 + y1_start_physics);
+                for (let i = 0; i <= numSegments; i++) {
+                    const x_physics = (i / numSegments) * stringPhysicalLength;
+                    const x_canvas = (x_physics / L_MAX_SLIDER_VALUE) * canvas.width; 
+                    const yOffset1 = progressiveAmplitude * Math.sin(k * x_physics - omega * time);
+                    const y_canvas1 = canvas.height / 2 + yOffset1;
+                    ctx.lineTo(x_canvas, y_canvas1);
+                }
+                ctx.strokeStyle = 'green';
+                ctx.lineWidth = 1.5; 
+                ctx.stroke();
+
+                ctx.beginPath(); // Wave 2
+                const y2_start_physics = progressiveAmplitude * Math.sin(k * 0 + omega * time);
+                ctx.moveTo((0 / L_MAX_SLIDER_VALUE) * canvas.width, canvas.height / 2 + y2_start_physics);
+                for (let i = 0; i <= numSegments; i++) {
+                    const x_physics = (i / numSegments) * stringPhysicalLength;
+                    const x_canvas = (x_physics / L_MAX_SLIDER_VALUE) * canvas.width; 
+                    const yOffset2 = progressiveAmplitude * Math.sin(k * x_physics + omega * time);
+                    const y_canvas2 = canvas.height / 2 + yOffset2;
+                    ctx.lineTo(x_canvas, y_canvas2);
+                }
+                ctx.strokeStyle = 'purple';
+                ctx.lineWidth = 1.5; 
+                ctx.stroke();
+            }
+
+            // --- 4. Draw Nodes ---
+            ctx.fillStyle = '#dc3545';
+            for (let m = 0; m <= currentHarmonic; m++) {
+                const nodeX_physics = m * (stringPhysicalLength / currentHarmonic);
+                const nodeX_canvas = (nodeX_physics / L_MAX_SLIDER_VALUE) * canvas.width; 
+                ctx.beginPath();
+                ctx.arc(nodeX_canvas, canvas.height / 2, 4, 0, 2 * Math.PI);
+                ctx.fill();
+            }
+        }
+
+        // Animation loop function
+        function animate() {
+            if (!isAnimationPaused) {
+                time += BASE_ANIMATION_TIME_SCALE * animationSpeedMultiplier;
+            }
+            drawString();
+            animationId = requestAnimationFrame(animate);
+        }
+
+        // Handles changes to parameters from UI controls
+        function handleMainParamChange() {
+            if (updateParametersAndFrequency()) { 
+                if (isAnimationPaused) { 
+                    time = Math.min(time, parseFloat(timeScrubSlider.max));
+                    timeScrubSlider.value = time.toFixed(3);
+                }
+            }
+            if (showProgressiveWavesCheckbox.checked) {
+                phaseRelationshipDisplayDiv.style.display = 'flex';
+            } else {
+                phaseRelationshipDisplayDiv.style.display = 'none';
+            }
+             adjustCanvasHeight(); 
+        }
+        
+        function handleAnimationSpeedChange() {
+            animationSpeedMultiplier = parseFloat(animationSpeedSlider.value);
+            animationSpeedValueDisplay.textContent = animationSpeedMultiplier.toFixed(1);
+        }
+
+        async function ensureAudioContextStarted() {
+            if (!isAudioContextStarted && Tone.context.state !== 'running') {
+                await Tone.start();
+                console.log("AudioContext started by user gesture.");
+                isAudioContextStarted = true;
+            }
+        }
+
+        // Animation Play/Pause Button Handler
+        playPauseAnimationButton.addEventListener('click', async () => {
+            await ensureAudioContextStarted(); 
+
+            isAnimationPaused = !isAnimationPaused;
+            if (isAnimationPaused) {
+                playPauseAnimationButton.innerHTML = playIconSVG; 
+                playPauseAnimationButton.style.backgroundColor = '#007bff'; 
+                timeScrubSlider.style.display = 'block';
+                timeScrubSliderLabel.style.display = 'block';
+                timeScrubSlider.value = Math.min(time, parseFloat(timeScrubSlider.max)).toFixed(3);
+            } else {
+                playPauseAnimationButton.innerHTML = pauseIconSVG; 
+                playPauseAnimationButton.style.backgroundColor = '#28a745'; 
+                timeScrubSlider.style.display = 'none';
+                timeScrubSliderLabel.style.display = 'none';
+            }
+        });
+
+        // Tone Play/Pause Button Handler
+        playPauseToneButton.addEventListener('click', async () => {
+            await ensureAudioContextStarted(); 
+
+            isTonePaused = !isTonePaused;
+            if (isTonePaused) {
+                playPauseToneButton.innerHTML = playIconSVG;
+                playPauseToneButton.style.backgroundColor = '#007bff'; 
+                if (gainNode) gainNode.gain.rampTo(0.0, 0.1); 
+            } else {
+                playPauseToneButton.innerHTML = pauseIconSVG;
+                playPauseToneButton.style.backgroundColor = '#28a745'; 
+                if (gainNode && currentModeFrequency > 0 && !isNaN(currentModeFrequency)) {
+                    const targetGain = (amplitude - 10) / (100 - 10) * MAX_GAIN;
+                    gainNode.gain.rampTo(Math.max(0, targetGain), 0.1); 
+                } else if (gainNode) {
+                    gainNode.gain.rampTo(0.0, 0.01); 
+                }
+            }
+        });
+
+
+        // Time Scrub Slider Handler
+        timeScrubSlider.addEventListener('input', () => {
+            if (isAnimationPaused) { 
+                time = parseFloat(timeScrubSlider.value);
+                drawString();
+            }
+        });
+
+
+        // Attach event listeners to all controls
+        amplitudeSlider.addEventListener('input', handleMainParamChange); 
+        lengthSlider.addEventListener('input', handleMainParamChange);
+        tensionSlider.addEventListener('input', handleMainParamChange);
+        muSlider.addEventListener('input', handleMainParamChange); 
+        harmonicSelect.addEventListener('change', handleMainParamChange);
+        showProgressiveWavesCheckbox.addEventListener('change', handleMainParamChange);
+        animationSpeedSlider.addEventListener('input', handleAnimationSpeedChange);
+        window.addEventListener('resize', adjustCanvasHeight); 
+
+        // --- Initial Setup ---
+        playPauseAnimationButton.innerHTML = playIconSVG; 
+        playPauseAnimationButton.style.backgroundColor = '#007bff';
+        playPauseToneButton.innerHTML = playIconSVG;
+        playPauseToneButton.style.backgroundColor = '#007bff';
+
+        timeScrubSlider.style.display = 'block'; 
+        timeScrubSliderLabel.style.display = 'block';
+
+
+        animationSpeedValueDisplay.textContent = animationSpeedMultiplier.toFixed(1);
+        updateParametersAndFrequency(); 
+        if (showProgressiveWavesCheckbox.checked) {
+            phaseRelationshipDisplayDiv.style.display = 'flex';
+        } else {
+            phaseRelationshipDisplayDiv.style.display = 'none';
+        }
+        timeScrubSlider.value = time.toFixed(3); 
+        adjustCanvasHeight(); 
+        animate(); 
+
+    </script>
+</body>
+</html>
